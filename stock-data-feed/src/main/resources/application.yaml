@@ -1,0 +1,22 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: stock-data-feed
+  kafka:
+    bootstrap-servers: localhost:9092
+    topic:
+      name: stock-prices
+      partitions: 1
+      replication-factor: 1
+      retention-ms: 2000 # Messages expire after 5 seconds
+      cleanup-policy: delete # Delete messages instead of compacting
+      segment-bytes: 1048576
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"

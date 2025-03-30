@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot-StockDataFeedApplication<stock-data-feed>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.theboringproject.stock_data_feed.StockDataFeedApplication",
+      "projectName": "stock-data-feed",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "java",
+      "name": "Spring Boot-PortfolioServiceApplication<portfolio-service>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.theboringproject.portfolio_service.PortfolioServiceApplication",
+      "projectName": "portfolio-service",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}
