@@ -1,13 +1,13 @@
-package com.theboringproject.portfolio_service.service;
+package com.theboringproject.authenticationservice.service;
 
-import com.theboringproject.portfolio_service.exception.TokenValidationFailedException;
-import com.theboringproject.portfolio_service.exception.UserAlreadyExistException;
-import com.theboringproject.portfolio_service.exception.UserCustomException;
-import com.theboringproject.portfolio_service.exception.UserNotFoundException;
-import com.theboringproject.portfolio_service.model.dao.User;
-import com.theboringproject.portfolio_service.model.dto.AppUserDto;
-import com.theboringproject.portfolio_service.model.dto.ToastMessage;
-import com.theboringproject.portfolio_service.repository.UserRepository;
+import com.theboringproject.authenticationservice.exception.TokenValidationFailedException;
+import com.theboringproject.authenticationservice.exception.UserAlreadyExistException;
+import com.theboringproject.authenticationservice.exception.UserCustomException;
+import com.theboringproject.authenticationservice.exception.UserNotFoundException;
+import com.theboringproject.authenticationservice.model.dao.User;
+import com.theboringproject.authenticationservice.model.dto.AppUserDto;
+import com.theboringproject.authenticationservice.model.dto.ToastMessage;
+import com.theboringproject.authenticationservice.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
