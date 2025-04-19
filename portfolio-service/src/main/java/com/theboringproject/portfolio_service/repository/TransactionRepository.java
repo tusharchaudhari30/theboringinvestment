@@ -8,11 +8,11 @@ import java.util.List;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
-    List<Transaction> findAllByUseridOrderByTransactionDateDesc(String userid, Pageable pageable);
+    List<Transaction> findAllByUserIdOrderByTransactionDateDesc(Long userid, Pageable pageable);
 
-    List<Transaction> findAllByUserid(String userid);
+    List<Transaction> findAllByUserId(Long userid);
 
     void deleteById(Long id);
 
-    Integer countByUserid(String userid);
+    Integer countByUserId(Long userid);
 }

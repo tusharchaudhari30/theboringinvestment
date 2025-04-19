@@ -1,7 +1,7 @@
 -- Insert Users
 INSERT INTO users (email, password) VALUES
-('user1@example.com', 'password123'),
-('user2@example.com', 'securepass456');
+('user1@example.com', '$2a$10$bsVL3sb9Ibs5l8DKH4CYGuyxkex.1DYKgnD8Q0Uw4QEdOdks4QyHC'),
+('user2@example.com', '$2a$10$bsVL3sb9Ibs5l8DKH4CYGuyxkex.1DYKgnD8Q0Uw4QEdOdks4QyHC');
 
 -- Insert Assets (Stocks)
 INSERT INTO assets (symbol, asset_name, date_of_listing, isin) VALUES

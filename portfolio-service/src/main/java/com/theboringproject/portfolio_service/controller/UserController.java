@@ -3,13 +3,10 @@ package com.theboringproject.portfolio_service.controller;
 import com.theboringproject.portfolio_service.model.dao.Assets;
 import com.theboringproject.portfolio_service.model.dto.Portfolio;
 import com.theboringproject.portfolio_service.repository.AssetRepository;
-import com.theboringproject.portfolio_service.service.AuthenticationService;
 import com.theboringproject.portfolio_service.service.PortfolioService;
 
 import lombok.AllArgsConstructor;
 
-import com.theboringproject.portfolio_service.model.dao.User;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

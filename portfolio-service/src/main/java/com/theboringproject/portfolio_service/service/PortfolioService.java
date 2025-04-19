@@ -5,7 +5,6 @@ import com.theboringproject.portfolio_service.model.dto.Portfolio;
 import com.theboringproject.portfolio_service.model.dto.Stock;
 import com.theboringproject.portfolio_service.repository.TransactionRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -22,34 +21,11 @@ public class PortfolioService {
         this.transactionRepository = transactionRepository;
     }
 
-    public Map<String, Object> getTransactionByToken(String token, Integer page) {
-        Map<String, Object> map = new HashMap<>();
-        String userid = authenticationService.validate(token).getEmail();
-        log.info("Retrieving transactions for user {} with page {}", userid, page);
-        map.put("transaction",
-                transactionRepository.findAllByUseridOrderByTransactionDateDesc(userid, PageRequest.of(page, 5)));
-        Integer transactionCount = transactionRepository.countByUserid(userid);
-        long count = (transactionCount + 4) / 5;
-        map.put("pages", Optional.of(count));
-        return map;
-    }
-
-    public void saveTransaction(String token, Transaction transaction) {
-        Long userid = authenticationService.validate(token).getId();
-        log.info("Saving transaction for user {} with ticker {} and quantity {}", userid, transaction.getTicker(),
-                transaction.getQuantity());
-        transaction.setId(null); // ensure new transaction
-        transaction.setUserId(userid);
-        transactionRepository.save(transaction);
-        log.info("Saved transaction for user {} with ticker {} and quantity {}", userid, transaction.getTicker(),
-                transaction.getQuantity());
-    }
-
     public Portfolio getPortfolio(String token) {
-        String userid = authenticationService.validate(token).getEmail();
+        Long userid = authenticationService.validate(token).getId();
         log.info("Retrieving portfolio for user {}", userid);
 
-        List<Transaction> transactionList = transactionRepository.findAllByUserid(userid);
+        List<Transaction> transactionList = transactionRepository.findAllByUserId(userid);
         Portfolio portfolio = new Portfolio();
         Map<String, Stock> quantityMap = new HashMap<>();
 
