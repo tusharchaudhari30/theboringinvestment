@@ -6,7 +6,7 @@ spring:
   application:
     name: authenticationservice
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: kafka:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -18,7 +18,7 @@ spring:
       properties:
         spring.json.trusted.packages: "*"
   datasource:
-    url: jdbc:postgresql://localhost:5432/portfolio_db
+    url: jdbc:postgresql://postgres:5432/portfolio_db
     username: portfolio_service
     password: portfolio_service
     driver-class-name: org.postgresql.Driver

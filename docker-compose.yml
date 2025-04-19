@@ -1,7 +1,7 @@
-version: "0.1"
+version: "0.2"
 
 services:
-  broker:
+  kafka:
     image: apache/kafka:latest
     hostname: broker
     container_name: broker
@@ -47,6 +47,41 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+  authenticationservice:
+    build:
+      context: ./authenticationservice
+      dockerfile: Dockerfile
+    container_name: authenticationservice
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+      - portfolioservice
+  transactionservice:
+    build:
+      context: ./transaction-service
+      dockerfile: Dockerfile
+    container_name: transactionservice
+    ports:
+      - "8083:8083"
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+      - portfolioservice
+  portfolioservice:
+    build:
+      context: ./portfolio-service
+      dockerfile: Dockerfile
+    container_name: portfolioservice
+    ports:
+      - "8082:8082"
+    depends_on:
+      - postgres
+      - kafka
+      - redis
 volumes:
   redis_data:
     driver: local
