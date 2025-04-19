@@ -7,15 +7,16 @@ plugins {
 group = 'com.theboringproject'
 version = '0.0.1-SNAPSHOT'
 
-ext {
-  set('springCloudVersion', "2024.0.1")
-}
-
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
+
+ext {
+  set('springCloudVersion', "2024.0.1")
+}
+
 
 configurations {
 	compileOnly {
@@ -28,26 +29,20 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.kafka:spring-kafka'
-	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
-	implementation group: 'com.auth0', name: 'java-jwt', version: '4.3.0'
-    implementation group: 'org.springframework.security', name: 'spring-security-crypto', version: '6.0.2'
-    runtimeOnly 'org.postgresql:postgresql'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.kafka:spring-kafka-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
 }
-
 dependencyManagement {
   imports {
     mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"

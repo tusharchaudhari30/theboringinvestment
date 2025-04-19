@@ -66,7 +66,6 @@ public class AuthenticationService {
             log.error("User already exists [{}]", appUserDto.getEmail());
             throw new UserAlreadyExistException("User already exists.");
         }
-
         User user = new User(appUserDto.getEmail(), passwordEncoder.encode(appUserDto.getPassword()));
         userRepository.save(user);
         log.info("Successfully registered user [{}]", user.getEmail());
