@@ -1,0 +1,13 @@
+@media (min-width: 641px) {
+    .modalbgmain {
+        left: 25%;
+        top: 25%;
+    }
+}
+
+@media not all and (min-width: 640px) {
+    .modalbgmain {
+        left: 5%;
+        top: 25%;
+    }
+}
