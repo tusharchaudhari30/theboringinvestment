@@ -1,0 +1,25 @@
+global:
+  imagePullPolicy: IfNotPresent
+
+services:
+  authentication:
+    image: theboringproject-authenticationservice:latest
+    port: 8081
+  portfolio:
+    image: theboringproject-portfolioservice:latest
+    port: 8082
+  transaction:
+    image: theboringproject-transactionservice:latest
+    port: 8083
+
+postgres:
+  image: postgres:latest
+  user: admin
+  password: admin
+  db: portfolio_db
+
+redis:
+  image: redis:latest
+
+kafka:
+  image: apache/kafka:latest

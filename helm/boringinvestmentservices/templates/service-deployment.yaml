@@ -1,0 +1,48 @@
+{{- range $svcName, $svc := .Values.services }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $svcName }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ $svcName }}
+  template:
+    metadata:
+      labels:
+        app: {{ $svcName }}
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      initContainers:
+        - name: wait-for-deps
+          image: busybox
+          command:
+            - sh
+            - -c
+            - >
+              until nc -z postgres 5432 && nc -z redis 6379 && nc -z kafka 9092;
+              do echo waiting for deps; sleep 5; done
+      containers:
+        - name: {{ $svcName }}
+          image: {{ $svc.image }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ $svc.port }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $svcName }}
+spec:
+  type: NodePort
+  selector:
+    app: {{ $svcName }}
+  ports:
+    - port: {{ $svc.port }}
+      targetPort: {{ $svc.port }}
+      nodePort: {{ $svc.nodePort }}
+{{- end }}
