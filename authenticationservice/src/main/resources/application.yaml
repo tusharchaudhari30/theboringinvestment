@@ -6,7 +6,7 @@ spring:
   application:
     name: authenticationservice
   kafka:
-    bootstrap-servers: broker:29092
+    bootstrap-servers: ${KAFKA_URL:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -18,7 +18,7 @@ spring:
       properties:
         spring.json.trusted.packages: "*"
   datasource:
-    url: jdbc:postgresql://postgres:5432/portfolio_db
+    url: jdbc:postgresql://${POSTGRES_URL:localhost:5432}/portfolio_db
     username: portfolio_service
     password: portfolio_service
     driver-class-name: org.postgresql.Driver
@@ -30,3 +30,7 @@ spring:
       hibernate:
         format_sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+redis:
+  url: redis://${REDIS_URL:localhost:6379}
+rabbitmq:
+  url: amqp://${RABBITMQ_URL:localhost:5672}

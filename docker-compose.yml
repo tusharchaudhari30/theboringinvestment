@@ -12,22 +12,22 @@ services:
       RABBITMQ_DEFAULT_PASS: admin
   kafka:
     image: apache/kafka:latest
-    hostname: broker
-    container_name: broker
+    hostname: kafka
+    container_name: kafka
     ports:
       - 9092:9092
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_NODE_ID: 1
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:29093
-      KAFKA_LISTENERS: PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
@@ -68,6 +68,15 @@ services:
       - kafka
       - redis
       - portfolioservice
+    environment:
+      KAFKA_URL: kafka:29092
+      AUTHENTICATION_SERVICE_URL: http://authenticationservice:8081
+      PORTFOLIO_SERVICE_URL: http://portfolioservice:8082
+      TRANSACTION_SERVICE_URL: http://transactionservice:8083
+      STOCK_DATA_FEED_URL: http://stockdatafeed:8084
+      POSTGRES_URL: postgres:5432
+      REDIS_URL: redis:6379
+      RABBITMQ_URL: rabbitmq:5672
 
   portfolioservice:
     build:
@@ -79,6 +88,15 @@ services:
       - postgres
       - kafka
       - redis
+    environment:
+      KAFKA_URL: kafka:29092
+      AUTHENTICATION_SERVICE_URL: http://authenticationservice:8081
+      PORTFOLIO_SERVICE_URL: http://portfolioservice:8082
+      TRANSACTION_SERVICE_URL: http://transactionservice:8083
+      STOCK_DATA_FEED_URL: http://stockdatafeed:8084
+      POSTGRES_URL: postgres:5432
+      REDIS_URL: redis:6379
+      RABBITMQ_URL: rabbitmq:5672
 
   transactionservice:
     build:
@@ -91,6 +109,15 @@ services:
       - kafka
       - redis
       - portfolioservice
+    environment:
+      KAFKA_URL: kafka:29092
+      AUTHENTICATION_SERVICE_URL: http://authenticationservice:8081
+      PORTFOLIO_SERVICE_URL: http://portfolioservice:8082
+      TRANSACTION_SERVICE_URL: http://transactionservice:8083
+      STOCK_DATA_FEED_URL: http://stockdatafeed:8084
+      POSTGRES_URL: postgres:5432
+      REDIS_URL: redis:6379
+      RABBITMQ_URL: rabbitmq:5672
 
   stockdatafeed:
     build:
@@ -103,6 +130,15 @@ services:
       - kafka
       - redis
       - portfolioservice
+    environment:
+      KAFKA_URL: kafka:29092
+      AUTHENTICATION_SERVICE_URL: http://authenticationservice:8081
+      PORTFOLIO_SERVICE_URL: http://portfolioservice:8082
+      TRANSACTION_SERVICE_URL: http://transactionservice:8083
+      STOCK_DATA_FEED_URL: http://stockdatafeed:8084
+      POSTGRES_URL: postgres:5432
+      REDIS_URL: redis:6379
+      RABBITMQ_URL: rabbitmq:5672
 
   frontend:
     build:
