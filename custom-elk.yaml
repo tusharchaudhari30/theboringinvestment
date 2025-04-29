@@ -1,0 +1,194 @@
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: boring-project
+  annotations:
+    linkerd.io/inject: enabled
+---
+# Elasticsearch Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: boring-project
+  labels:
+    app: elasticsearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+        - name: elasticsearch
+          image: docker.io/elasticsearch:7.17.13
+          ports:
+            - containerPort: 9200
+              name: http
+            - containerPort: 9300
+              name: transport
+          env:
+            - name: discovery.type
+              value: single-node
+            - name: ES_JAVA_OPTS
+              value: "-Xms256m -Xmx256m"
+---
+# Elasticsearch Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: boring-project
+spec:
+  selector:
+    app: elasticsearch
+  ports:
+    - name: http
+      port: 9200
+      targetPort: http
+    - name: transport
+      port: 9300
+      targetPort: transport
+---
+# Kibana Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: boring-project
+  labels:
+    app: kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+        - name: kibana
+          image: docker.io/kibana:7.17.13
+          ports:
+            - containerPort: 5601
+              name: http
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              value: http://elasticsearch:9200
+---
+# Kibana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: boring-project
+spec:
+  selector:
+    app: kibana
+  ports:
+    - name: http
+      port: 5601
+      targetPort: http
+---
+# Fluent Bit ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: boring-project
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush        1
+        Daemon       Off
+        Log_Level    info
+        Parsers_File parsers.conf
+
+    [INPUT]
+        Name              tail
+        Path              /var/log/containers/*.log
+        multiline.parser  docker, cri
+        Tag               kube.*
+        Refresh_Interval  5
+        Mem_Buf_Limit     10MB
+        Skip_Long_Lines   On
+
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Merge_Log           On
+        Keep_Log            Off
+        K8S-Logging.Parser  On
+
+    [OUTPUT]
+        Name  es
+        Match *
+        Host  elasticsearch
+        Port  9200
+        Logstash_Format On
+        Replace_Dots    On
+        Retry_Limit     False
+  parsers.conf: |
+    [MULTILINE_PARSER]
+        Name          docker
+        Type          regex
+        Flush_Interval 1
+        Rule          "start_state"  "^\s*{"  "cont"
+        Rule          "cont"         "^\s*"  "cont"
+
+    [MULTILINE_PARSER]
+        Name          cri
+        Type          regex
+        Flush_Interval 1
+        Rule          "start_state"  "^\[.*\]"  "cont"
+        Rule          "cont"         "^\s+"     "cont"
+---
+# Fluent Bit DaemonSet
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit
+  namespace: boring-project
+  labels:
+    k8s-app: fluent-bit
+spec:
+  selector:
+    matchLabels:
+      name: fluent-bit
+  template:
+    metadata:
+      labels:
+        name: fluent-bit
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: fluent-bit
+          image: cr.fluentbit.io/fluent/fluent-bit:2.1.8
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: config
+              mountPath: /fluent-bit/etc/
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: config
+          configMap:
+            name: fluent-bit-config

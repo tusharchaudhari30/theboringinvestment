@@ -48,13 +48,15 @@ export default class PortfolioTable extends Component {
                 <React.Fragment key={key}>
                   <tr>
                     <td className="px-3 py-3 border-slate-600 border">
-                      {key + ((this.state.current - 1) * 5)+1}
+                      {key + (this.state.current - 1) * 5 + 1}
                     </td>
                     <td className="px-2 py-3 border-slate-600 border">
-                      <p className="truncate md:w-auto w-24">{stock.assetName}</p>
+                      <p className="truncate md:w-auto w-24">
+                        {stock.assetName}
+                      </p>
                     </td>
                     <td className="px-2 py-3 border-slate-600 border">
-                      {stock.average}
+                      {stock.average.toFixed(2)}
                     </td>
                     <td className="px-2 py-3 border-slate-600 border">
                       {stock.quantity}

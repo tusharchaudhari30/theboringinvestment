@@ -45,7 +45,7 @@ export default class ModalTransaction extends Component {
     }
     HomeClient.saveTransaction(
       this.state.asset.assetName,
-      this.state.asset.symbol + ".NS",
+      this.state.asset.symbol,
       this.state.amount,
       this.state.average,
       this.state.date.toString()

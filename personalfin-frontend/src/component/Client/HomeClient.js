@@ -1,5 +1,5 @@
 class HomeClient {
-  static url = "http://localhost:8080";
+  static url = "";
 
   static async Portfolio() {
     const myHeaders = new Headers();
@@ -14,8 +14,8 @@ class HomeClient {
       redirect: "follow",
     };
 
-    return fetch(this.url + "/portfolio", requestOptions).then((response) =>
-      response.json()
+    return fetch(this.url + "/portfolio/user/portfolio", requestOptions).then(
+      (response) => response.json()
     );
   }
 
@@ -31,9 +31,10 @@ class HomeClient {
       redirect: "follow",
     };
 
-    return fetch(this.url + "/transaction/" + page, requestOptions).then(
-      (response) => response.json()
-    );
+    return fetch(
+      this.url + "/transaction/transaction/" + page,
+      requestOptions
+    ).then((response) => response.json());
   }
 
   static async saveTransaction(assetName, ticker, amount, average, date) {
@@ -59,8 +60,8 @@ class HomeClient {
       redirect: "follow",
     };
 
-    return fetch(this.url + "/transaction", requestOptions).then((response) =>
-      response.json()
+    return fetch(this.url + "/transaction/transaction", requestOptions).then(
+      (response) => response.json()
     );
   }
 
@@ -78,7 +79,7 @@ class HomeClient {
     };
 
     return fetch(
-      this.url + "/asset/search?keyword=" + assetName,
+      this.url + "/portfolio/user/asset/search?keyword=" + assetName,
       requestOptions
     ).then((response) => response.json());
   }
@@ -97,7 +98,7 @@ class HomeClient {
     };
 
     return fetch(
-      this.url + "/transaction?id=" + transactionid,
+      this.url + "/transaction/transaction?id=" + transactionid,
       requestOptions
     ).then((response) => response.text());
   }

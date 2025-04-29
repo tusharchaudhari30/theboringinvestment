@@ -1,5 +1,5 @@
 class LoginClient {
-  static url = "http://localhost:8080";
+  static url = "";
 
   static async login(username, password) {
     let requestOptions = {
@@ -8,7 +8,7 @@ class LoginClient {
     };
 
     return fetch(
-      this.url + `/user/login?email=${username}&password=${password}`,
+      this.url + `/authentication/login?email=${username}&password=${password}`,
       requestOptions
     );
   }
@@ -26,7 +26,7 @@ class LoginClient {
       redirect: "follow",
     };
 
-    return fetch(this.url + "/user", requestOptions).then(
+    return fetch(this.url + "/authentication/validate", requestOptions).then(
       (response) => response.status === 200
     );
   }
@@ -47,8 +47,8 @@ class LoginClient {
       redirect: "follow",
     };
 
-    return fetch(this.url + "/user/signup", requestOptions).then((response) =>
-      response.json()
+    return fetch(this.url + "/authentication/signup", requestOptions).then(
+      (response) => response.json()
     );
   }
 }

@@ -100,7 +100,7 @@ export default class TransactionTable extends Component {
                 </p>
               </td>
               <td className="px-2 py-1 border-slate-600 border">
-                {transaction.average}
+                {transaction.average.toFixed(2)}
               </td>
               <td className="px-2 py-1 border-slate-600 border">
                 {transaction.quantity}

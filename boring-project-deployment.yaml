@@ -6,6 +6,42 @@ metadata:
   annotations:
     linkerd.io/inject: enabled
 
+# Frontend (React via Nginx)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontendpersonalfin
+  namespace: boring-project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontendpersonalfin
+  template:
+    metadata:
+      labels:
+        app: frontendpersonalfin
+    spec:
+      containers:
+        - name: frontendpersonalfin
+          image: localhost:6000/theboringproject-frontendpersonalfin:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+---
+# Service for Frontend
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontendpersonalfin
+  namespace: boring-project
+spec:
+  selector:
+    app: frontendpersonalfin
+  ports:
+    - port: 80
+      targetPort: 80
 # AuthenticationService
 ---
 apiVersion: apps/v1
@@ -306,3 +342,10 @@ spec:
                 name: transactionservice
                 port:
                   number: 8083
+          - path: /()(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: frontendpersonalfin
+                port:
+                  number: 80
