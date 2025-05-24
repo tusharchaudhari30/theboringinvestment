@@ -8,4 +8,7 @@ import lombok.Data;
 public class ChartModel {
     private String name;
     private Double value;
+
+    ChartModel() {
+    }
 }

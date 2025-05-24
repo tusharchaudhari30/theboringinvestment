@@ -3,9 +3,12 @@ package com.theboringproject.portfolio_service.model.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.theboringproject.portfolio_service.model.dao.Transaction;
 
+import lombok.Data;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Data
 public class Portfolio {
     public Double invested;
     public Double holding;

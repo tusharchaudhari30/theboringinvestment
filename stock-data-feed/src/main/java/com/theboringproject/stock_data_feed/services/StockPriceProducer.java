@@ -18,7 +18,7 @@ import java.util.Random;
 public class StockPriceProducer {
 
     private static final String TOPIC = "stock-prices";
-    private static final String[] STOCKS = { "AAPL", "GOOGL", "TSLA", "MSFT", "AMZN" };
+    private static final String[] STOCKS = { "AAPL" };
     private final Random random = new Random();
 
     private final KafkaTemplate<String, StockPrice> stockPriceKafkaTemplate;
@@ -28,7 +28,7 @@ public class StockPriceProducer {
         this.stockPriceKafkaTemplate = stockPriceKafkaTemplate;
     }
 
-    @Scheduled(fixedRate = 1000) // Send data every second
+    @Scheduled(fixedRate = 5000) // Send data every second
     public void sendStockPriceUpdate() {
         for (String stock : STOCKS) {
             double price = 100 + random.nextDouble() * 50; // Random price

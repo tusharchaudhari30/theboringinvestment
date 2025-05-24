@@ -13,4 +13,8 @@ public class Stock {
     public Double average;
     public Double price;
     public Integer quantity;
+    public Double changePercent;
+
+    Stock() {
+    }
 }
