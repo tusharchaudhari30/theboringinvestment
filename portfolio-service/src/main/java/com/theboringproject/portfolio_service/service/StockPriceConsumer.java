@@ -35,14 +35,14 @@ public class StockPriceConsumer {
         try {
             StockPrice stockPrice = objectMapper.readValue(record.value(), StockPrice.class);
             // Iterate Redis to find users whose portfolio includes the updated stock
-            Set<String> keys = portfolioRedisTemplate.keys("Bearer *");
-            for (String token : keys) {
-                Portfolio portfolio = portfolioRedisTemplate.opsForValue().get(token);
+            Set<String> keys = portfolioRedisTemplate.keys("Portfolio *");
+            for (String email : keys) {
+                Portfolio portfolio = portfolioRedisTemplate.opsForValue().get(email);
                 if (portfolio != null && portfolio.getStockList().stream()
                         .anyMatch(stock -> stock.getTicker().equalsIgnoreCase(stockPrice.getStockSymbol()))) {
-                    Portfolio updated = portfolioService.updateStockPrice(token, portfolio, stockPrice.getStockSymbol(),
+                    Portfolio updated = portfolioService.updateStockPrice(email, portfolio, stockPrice.getStockSymbol(),
                             stockPrice.getPrice());
-                    webSocketSender.sendToUser(token, updated);
+                    webSocketSender.sendToUser(email, updated);
                 }
             }
         } catch (Exception e) {

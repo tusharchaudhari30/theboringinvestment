@@ -10,6 +10,7 @@ import Piechart from "../util/charts/Piechart";
 import PortfolioTable from "../util/Table/PortfolioTable";
 import TransactionTable from "../util/Table/TransactionTable";
 import "react-toastify/dist/ReactToastify.css";
+import WebsocketConnection from "../Client/WebsocketConnection";
 export default class Home extends Component {
   state = {
     user: null,
@@ -18,11 +19,14 @@ export default class Home extends Component {
 
   componentDidMount() {
     this.loadData();
-    //setInterval(() => this.loadData(), 10000);
   }
 
   updateData = () => {
     this.loadData();
+  };
+
+  updateLivePortfolioFeed = (data) => {
+    console.log("Live Portfolio Feed: ", data);
   };
 
   loadData = () => {
@@ -32,6 +36,9 @@ export default class Home extends Component {
         HomeClient.Portfolio().then((portfolio) =>
           this.setState({ portfolio: portfolio })
         );
+      })
+      .finally(() => {
+        WebsocketConnection.connectWebsocket(this.updateLivePortfolioFeed);
       });
   };
 

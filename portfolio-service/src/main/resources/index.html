@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WebSocket User Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  </head>
+  <body>
+    <h2>WebSocket Chat</h2>
+    <input id="username" placeholder="Enter your username" />
+    <button onclick="connect()">Connect</button>
+    <script>
+      let stompClient;
+
+      function connect() {
+        const user = document.getElementById("username").value;
+        const socket = new SockJS(
+          "http://localhost:8082/ws?Authorization=" + user
+        );
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+          console.log("Connected as " + user);
+          stompClient.subscribe("/user/queue/portfolio", function (message) {
+            console.log(message);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

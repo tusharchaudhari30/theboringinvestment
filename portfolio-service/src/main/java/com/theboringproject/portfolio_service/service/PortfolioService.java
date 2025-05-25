@@ -1,6 +1,7 @@
 package com.theboringproject.portfolio_service.service;
 
 import com.theboringproject.portfolio_service.model.dao.Transaction;
+import com.theboringproject.portfolio_service.model.dao.User;
 import com.theboringproject.portfolio_service.model.dto.Portfolio;
 import com.theboringproject.portfolio_service.model.dto.Stock;
 import com.theboringproject.portfolio_service.repository.TransactionRepository;
@@ -28,7 +29,8 @@ public class PortfolioService {
     }
 
     public Portfolio getPortfolio(String token) {
-        Long userId = authenticationService.validate(token).getId();
+        User user = authenticationService.validate(token);
+        Long userId = user.getId();
         log.info("Retrieving portfolio for user {}", userId);
         List<Transaction> transactionList = transactionRepository.findAllByUserId(userId);
         Portfolio portfolio = new Portfolio();
@@ -74,13 +76,13 @@ public class PortfolioService {
             portfolio.setProfit(0.0);
             portfolio.setPercentageReturn(0.0);
         }
-        portfolioRedisTemplate.opsForValue().set(token, portfolio, 30, TimeUnit.MINUTES);
+        portfolioRedisTemplate.opsForValue().set("Portfolio " + user.getEmail(), portfolio, 30, TimeUnit.MINUTES);
         log.info("Retrieved portfolio for user {} with profit {} and percentage return {}",
                 userId, portfolio.getProfit(), portfolio.getPercentageReturn());
         return portfolio;
     }
 
-    public Portfolio updateStockPrice(String token, Portfolio portfolio, String ticker, Double newPrice) {
+    public Portfolio updateStockPrice(String email, Portfolio portfolio, String ticker, Double newPrice) {
         log.info("Updating stock price for ticker: {}", ticker);
         // Find the stock in the portfolio
         Stock stockToUpdate = portfolio.getStockList().stream()
@@ -93,6 +95,13 @@ public class PortfolioService {
             // Recalculate the change percentage
             double changePercent = (newPrice - stockToUpdate.getAverage()) / stockToUpdate.getAverage() * 100;
             stockToUpdate.setChangePercent(changePercent);
+
+            // Update the stock in the portfolio
+            double newHolding = portfolio.getStockList().stream()
+                    .mapToDouble(stock -> stock.getPrice() * stock.getQuantity())
+                    .sum();
+            portfolio.setHolding(newHolding);
+
             // Recalculate profit and percentage return if needed
             portfolio.setProfit(portfolio.getHolding() - portfolio.getInvested());
             portfolio.setPercentageReturn(portfolio.getInvested() != 0
@@ -100,10 +109,10 @@ public class PortfolioService {
                     : 0.0);
             log.info("Updated stock price for ticker {}: New price = {}, Change percent = {}",
                     ticker, newPrice, changePercent);
+            portfolioRedisTemplate.opsForValue().set(email, portfolio, 30, TimeUnit.MINUTES);
         } else {
             log.warn("Stock with ticker {} not found in the portfolio.", ticker);
         }
-        portfolioRedisTemplate.opsForValue().set(token, portfolio, 30, TimeUnit.MINUTES);
         return portfolio;
     }
 

@@ -23,11 +23,7 @@ public class PortfolioWebSocketSender {
         this.tokenSessionRegistry = tokenSessionRegistry;
     }
 
-    public void sendToUser(String token, Portfolio portfolio) {
-        Set<String> sessions = tokenSessionRegistry.getSessions(token);
-        for (String sessionId : sessions) {
-            log.info("Sending portfolio update to session: {}", sessionId);
-            messagingTemplate.convertAndSend("/user/" + sessionId + "/topic/portfolio", portfolio);
-        }
+    public void sendToUser(String email, Portfolio portfolio) {
+        messagingTemplate.convertAndSendToUser(email, "/queue/portfolio", portfolio);
     }
 }
