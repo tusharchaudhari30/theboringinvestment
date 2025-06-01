@@ -1,0 +1,125 @@
+direction: right
+
+frontend: component {
+  shape: rectangle
+  style.fill: "#f48fb1"
+  label: "Frontend\nPort 3000"
+  width: 150
+  height: 200
+  style.font-size: 20
+}
+
+nginx: component {
+  shape: rectangle
+  style.fill: "#a8d5a3"
+  label: "NGINX Gateway\n 80"
+  width: 150
+  height: 400
+  style.font-size: 20
+}
+
+authenticationservice: component {
+  shape: rectangle
+  style.fill: "#90caf9"
+  label: "Authentication Service\n8081"
+  width: 150
+  height: 200
+  style.font-size: 20
+}
+
+portfolioservice: component {
+  shape: rectangle
+  style.fill: "#a5d6a7"
+  label: "Portfolio Service\n8082"
+  width: 150
+  height: 200
+  style.font-size: 20
+}
+
+transactionservice: component {
+  shape: rectangle
+  style.fill: "#ffe082"
+  label: "Transaction Service\n8083"
+  width: 150
+  height: 200
+  style.font-size: 20
+}
+
+kafka: component {
+  shape: queue
+  style.fill: "#ff7043"
+  label: "Kafka Queue"
+  width: 300
+  height: 130
+  style.font-size: 20
+}
+
+stockdatafeed: component {
+  shape: rectangle
+  style.fill: "#81d4fa"
+  label: "Stock Data Feed\n8084"
+  width: 150
+  height: 200
+  style.font-size: 20
+}
+
+database: component {
+  shape: cylinder
+  style.fill: "#bcaaa4"
+  label: "Postgres DB"
+  width: 150
+  height: 150
+  style.font-size: 20
+}
+
+redis: component {
+  shape: cylinder
+  style.fill: "#fbc02d"
+  label: "Redis Cache"
+  width: 130
+  height: 130
+  style.font-size: 20
+}
+
+# Animated bidirectional connections only
+frontend <-> nginx: "http" {
+  style.animated: true
+}
+nginx <- portfolioservice: "WebSocket" {
+  style.animated: true
+}
+nginx <-> authenticationservice: "auth" {
+  style.animated: true
+}
+authenticationservice <- transactionservice: "Validate User" {
+  style.animated: true
+}
+authenticationservice <- portfolioservice: "Validate User" {
+  style.animated: true
+}
+nginx <-> portfolioservice: "portfolio" {
+  style.animated: true
+}
+nginx <-> transactionservice: "transaction" {
+  style.animated: true
+}
+
+authenticationservice <-> database: "reads/writes" {
+  style.animated: true
+}
+portfolioservice <-> database: "reads/writes" {
+  style.animated: true
+}
+transactionservice <-> database: "reads/writes" {
+  style.animated: true
+}
+
+portfolioservice <-> redis: "cache" {
+  style.animated: true
+}
+portfolioservice <- kafka: "Consumes" {
+  style.animated: true
+}
+kafka <- stockdatafeed: "Publishes" {
+  style.animated: true
+}

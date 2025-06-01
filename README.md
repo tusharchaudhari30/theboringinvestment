@@ -17,9 +17,19 @@ Boring Investment Club is a personal finance project focusing on portfolio manag
 
 ## Technologies Used
 
-- Front-end: JavaScript with React
-- Back-end: Java with Spring Boot and MongoDB
-- Charting: eChart.js library
+![architecture](documentation/design/Phase1.webp)
+
+| Layer            | Technology             |
+| ---------------- | ---------------------- |
+| Frontend         | React, JavaScript      |
+| Backend          | Spring Boot (Java 21)  |
+| API Gateway      | NGINX                  |
+| Messaging        | Apache Kafka           |
+| Database         | PostgreSQL             |
+| Cache            | Redis                  |
+| Auth             | JWT (JSON Web Token)   |
+| Charts           | ECharts.js             |
+| Containerization | Docker, Docker Compose |
 
 ## Features
 
