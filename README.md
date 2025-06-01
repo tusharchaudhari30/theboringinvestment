@@ -17,7 +17,7 @@ Boring Investment Club is a personal finance project focusing on portfolio manag
 
 ## Technologies Used
 
-![architecture](documentation/design/Phase1.webp)
+![architecture](documentation/design/Phase1.svg)
 
 | Layer            | Technology             |
 | ---------------- | ---------------------- |
