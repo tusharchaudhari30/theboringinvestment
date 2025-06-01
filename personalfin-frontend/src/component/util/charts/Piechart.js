@@ -36,6 +36,7 @@ export default class Piechart extends Component {
     },
   };
   componentDidUpdate(prevProps, prevState, snapshot) {
+    console.log("Piechart componentDidUpdate", this.props.data);
     if (prevProps.data !== this.props.data) {
       this.setState({
         option: {

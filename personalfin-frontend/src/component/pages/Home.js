@@ -26,7 +26,7 @@ export default class Home extends Component {
   };
 
   updateLivePortfolioFeed = (data) => {
-    console.log("Live Portfolio Feed: ", data);
+    this.setState({ portfolio: data });
   };
 
   loadData = () => {
@@ -37,7 +37,7 @@ export default class Home extends Component {
           this.setState({ portfolio: portfolio })
         );
       })
-      .finally(() => {
+      .then(() => {
         WebsocketConnection.connectWebsocket(this.updateLivePortfolioFeed);
       });
   };

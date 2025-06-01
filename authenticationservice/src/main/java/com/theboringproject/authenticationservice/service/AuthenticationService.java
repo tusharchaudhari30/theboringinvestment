@@ -31,6 +31,7 @@ public class AuthenticationService {
     }
 
     public User validate(String token) {
+        log.info("Validating token: {}", token);
         token = token.substring(7); // remove "Bearer "
         try {
             String email = jwtUtilService.getSubjectFromToken(token);

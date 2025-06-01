@@ -2,6 +2,7 @@ package com.theboringproject.portfolio_service.service;
 
 import com.theboringproject.portfolio_service.model.dao.Transaction;
 import com.theboringproject.portfolio_service.model.dao.User;
+import com.theboringproject.portfolio_service.model.dto.ChartModel;
 import com.theboringproject.portfolio_service.model.dto.Portfolio;
 import com.theboringproject.portfolio_service.model.dto.Stock;
 import com.theboringproject.portfolio_service.repository.TransactionRepository;
@@ -107,6 +108,11 @@ public class PortfolioService {
             portfolio.setPercentageReturn(portfolio.getInvested() != 0
                     ? (portfolio.getProfit() / portfolio.getInvested()) * 100
                     : 0.0);
+            List<ChartModel> chartData = new ArrayList<>();
+            for (Stock stock : portfolio.getStockList()) {
+                chartData.add(new ChartModel(stock.getAssetName(), stock.getPrice() * stock.getQuantity()));
+            }
+            portfolio.setChartModels(chartData);
             log.info("Updated stock price for ticker {}: New price = {}, Change percent = {}",
                     ticker, newPrice, changePercent);
             portfolioRedisTemplate.opsForValue().set(email, portfolio, 30, TimeUnit.MINUTES);

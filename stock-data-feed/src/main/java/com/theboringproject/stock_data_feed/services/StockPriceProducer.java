@@ -18,7 +18,7 @@ import java.util.Random;
 public class StockPriceProducer {
 
     private static final String TOPIC = "stock-prices";
-    private static final String[] STOCKS = { "AAPL" };
+    private static final String[] STOCKS = { "AAPL", "TSLA" };
     private final Random random = new Random();
 
     private final KafkaTemplate<String, StockPrice> stockPriceKafkaTemplate;

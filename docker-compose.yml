@@ -75,7 +75,7 @@ services:
       TRANSACTION_SERVICE_URL: http://transactionservice:8083
       STOCK_DATA_FEED_URL: http://stockdatafeed:8084
       POSTGRES_URL: postgres:5432
-      REDIS_URL: redis:6379
+      REDIS_URL: redis
       RABBITMQ_URL: rabbitmq:5672
 
   portfolioservice:
@@ -95,7 +95,7 @@ services:
       TRANSACTION_SERVICE_URL: http://transactionservice:8083
       STOCK_DATA_FEED_URL: http://stockdatafeed:8084
       POSTGRES_URL: postgres:5432
-      REDIS_URL: redis:6379
+      REDIS_URL: redis
       RABBITMQ_URL: rabbitmq:5672
 
   transactionservice:
@@ -116,7 +116,7 @@ services:
       TRANSACTION_SERVICE_URL: http://transactionservice:8083
       STOCK_DATA_FEED_URL: http://stockdatafeed:8084
       POSTGRES_URL: postgres:5432
-      REDIS_URL: redis:6379
+      REDIS_URL: redis
       RABBITMQ_URL: rabbitmq:5672
 
   stockdatafeed:
@@ -137,7 +137,7 @@ services:
       TRANSACTION_SERVICE_URL: http://transactionservice:8083
       STOCK_DATA_FEED_URL: http://stockdatafeed:8084
       POSTGRES_URL: postgres:5432
-      REDIS_URL: redis:6379
+      REDIS_URL: redis
       RABBITMQ_URL: rabbitmq:5672
 
   frontend:
