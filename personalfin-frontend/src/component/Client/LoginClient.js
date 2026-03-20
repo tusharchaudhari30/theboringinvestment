@@ -2,15 +2,17 @@ class LoginClient {
   static url = "";
 
   static async login(username, password) {
+    var myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+
     let requestOptions = {
-      method: "GET",
+      method: "POST",
+      headers: myHeaders,
+      body: JSON.stringify({ email: username, password: password }),
       redirect: "follow",
     };
 
-    return fetch(
-      this.url + `/authentication/login?email=${username}&password=${password}`,
-      requestOptions
-    );
+    return fetch(this.url + "/authentication/login", requestOptions);
   }
 
   static async validate() {

@@ -33,7 +33,6 @@ export default class Login extends Component {
     LoginClient.login(this.state.login, this.state.password)
       .then((response) => response.json())
       .then((response) => {
-        console.log(response);
         if (response.statuscode === "UNAUTHORIZED") {
           toast.error(response.message);
         } else {
