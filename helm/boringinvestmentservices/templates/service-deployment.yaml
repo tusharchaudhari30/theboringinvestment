@@ -18,7 +18,7 @@ spec:
     spec:
       initContainers:
         - name: wait-for-deps
-          image: busybox
+          image: busybox:1.36
           command:
             - sh
             - -c
@@ -38,11 +38,17 @@ kind: Service
 metadata:
   name: {{ $svcName }}
 spec:
+  {{- if $svc.nodePort }}
   type: NodePort
+  {{- else }}
+  type: ClusterIP
+  {{- end }}
   selector:
     app: {{ $svcName }}
   ports:
     - port: {{ $svc.port }}
       targetPort: {{ $svc.port }}
+      {{- if $svc.nodePort }}
       nodePort: {{ $svc.nodePort }}
+      {{- end }}
 {{- end }}
