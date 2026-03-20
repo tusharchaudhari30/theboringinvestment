@@ -1,4 +1,5 @@
-import './tracing'; // must be first — initialises OTel before React and any fetch calls
+import './apm';     // Elastic RUM — must be before React (captures page load from start)
+import './tracing'; // OTel — initialises W3C trace propagation on fetch()
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';

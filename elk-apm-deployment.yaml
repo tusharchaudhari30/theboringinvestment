@@ -1,0 +1,381 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# ELK APM Stack  —  Elasticsearch · Kibana · APM Server · Kibana Setup Job
+# ─────────────────────────────────────────────────────────────────────────────
+
+# PVC for Elasticsearch data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-pvc
+  namespace: boring-project
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Elasticsearch
+# ─────────────────────────────────────────────────────────────────────────────
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  namespace: boring-project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      initContainers:
+        # Elasticsearch requires vm.max_map_count >= 262144
+        - name: set-max-map-count
+          image: busybox:1.36
+          command: ["sysctl", "-w", "vm.max_map_count=262144"]
+          securityContext:
+            privileged: true
+      containers:
+        - name: elasticsearch
+          image: elasticsearch:8.13.0
+          ports:
+            - containerPort: 9200
+            - containerPort: 9300
+          env:
+            - name: discovery.type
+              value: single-node
+            - name: xpack.security.enabled
+              value: "false"
+            - name: xpack.security.http.ssl.enabled
+              value: "false"
+            - name: ES_JAVA_OPTS
+              value: "-Xms512m -Xmx512m"
+            - name: cluster.name
+              value: boring-project-cluster
+          volumeMounts:
+            - name: es-data
+              mountPath: /usr/share/elasticsearch/data
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health?wait_for_status=yellow&timeout=5s
+              port: 9200
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: es-data
+          persistentVolumeClaim:
+            claimName: elasticsearch-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: boring-project
+spec:
+  selector:
+    app: elasticsearch
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200
+    - name: transport
+      port: 9300
+      targetPort: 9300
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Kibana
+# ─────────────────────────────────────────────────────────────────────────────
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: boring-project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+        - name: kibana
+          image: kibana:8.13.0
+          ports:
+            - containerPort: 5601
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              value: "http://elasticsearch:9200"
+            - name: SERVER_NAME
+              value: "kibana.boring-project"
+            - name: SERVER_BASEPATH
+              value: "/kibana"
+            - name: SERVER_REWRITEBASEPATH
+              value: "true"
+            - name: XPACK_APM_ENABLED
+              value: "true"
+            - name: XPACK_FLEET_ENABLED
+              value: "false"
+          readinessProbe:
+            httpGet:
+              path: /kibana/api/status
+              port: 5601
+            initialDelaySeconds: 60
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: boring-project
+spec:
+  selector:
+    app: kibana
+  ports:
+    - port: 5601
+      targetPort: 5601
+
+# ─────────────────────────────────────────────────────────────────────────────
+# APM Server
+# ─────────────────────────────────────────────────────────────────────────────
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apm-server-config
+  namespace: boring-project
+data:
+  apm-server.yml: |
+    apm-server:
+      host: "0.0.0.0:8200"
+
+      # Real User Monitoring — allows browser to send APM data directly
+      rum:
+        enabled: true
+        allow_origins: ["*"]
+        allow_headers: ["traceparent", "tracestate", "elastic-apm-traceparent"]
+        allow_service_names: []
+        event_rate:
+          limit: 300
+          lru_size: 1000
+
+      # Disable auth for development — backend services connect directly
+      auth:
+        anonymous:
+          enabled: true
+          allow_service:
+            - "*"
+          rate_limit:
+            event_limit: 300
+            ip_limit: 1000
+
+    output.elasticsearch:
+      hosts: ["http://elasticsearch:9200"]
+      indices:
+        - index: "apm-%{[observer.version]}-transaction"
+          when.contains:
+            processor.event: "transaction"
+        - index: "apm-%{[observer.version]}-span"
+          when.contains:
+            processor.event: "span"
+        - index: "apm-%{[observer.version]}-error"
+          when.contains:
+            processor.event: "error"
+        - index: "apm-%{[observer.version]}-metric"
+          when.contains:
+            processor.event: "metric"
+
+    setup.kibana:
+      host: "http://kibana:5601/kibana"
+      timeout: 90
+
+    setup.template.enabled: true
+    setup.dashboards.enabled: false
+
+    logging.level: info
+    logging.to_stderr: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apm-server
+  namespace: boring-project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apm-server
+  template:
+    metadata:
+      labels:
+        app: apm-server
+    spec:
+      containers:
+        - name: apm-server
+          image: elastic/apm-server:8.13.0
+          args: ["-e", "-c", "/usr/share/apm-server/apm-server.yml"]
+          ports:
+            - containerPort: 8200
+          volumeMounts:
+            - name: apm-config-vol
+              mountPath: /usr/share/apm-server/apm-server.yml
+              subPath: apm-server.yml
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8200
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: apm-config-vol
+          configMap:
+            name: apm-server-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apm-server
+  namespace: boring-project
+spec:
+  selector:
+    app: apm-server
+  ports:
+    - name: apm
+      port: 8200
+      targetPort: 8200
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Kibana Setup Job — creates data views and imports APM dashboards
+# ─────────────────────────────────────────────────────────────────────────────
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-setup-config
+  namespace: boring-project
+data:
+  setup.sh: |
+    #!/bin/sh
+    set -e
+
+    KIBANA="http://kibana:5601/kibana"
+    ES="http://elasticsearch:9200"
+
+    echo ">>> Waiting for Elasticsearch..."
+    until curl -sf "$ES/_cluster/health?wait_for_status=yellow&timeout=5s" > /dev/null; do
+      echo "    ES not ready, retrying in 10s..."
+      sleep 10
+    done
+    echo "    Elasticsearch is ready."
+
+    echo ">>> Waiting for Kibana..."
+    until curl -sf "$KIBANA/api/status" | grep -q '"level":"available"'; do
+      echo "    Kibana not ready, retrying in 15s..."
+      sleep 15
+    done
+    echo "    Kibana is ready."
+
+    echo ">>> Creating APM index patterns (data views)..."
+    # traces-apm-*
+    curl -sf -X POST "$KIBANA/api/data_views/data_view" \
+      -H 'Content-Type: application/json' \
+      -H 'kbn-xsrf: true' \
+      -d '{
+        "data_view": {
+          "id": "apm-traces-dv",
+          "title": "traces-apm-*",
+          "timeFieldName": "@timestamp",
+          "name": "APM Traces"
+        }
+      }' || echo "    APM Traces data view may already exist."
+
+    # metrics-apm-*
+    curl -sf -X POST "$KIBANA/api/data_views/data_view" \
+      -H 'Content-Type: application/json' \
+      -H 'kbn-xsrf: true' \
+      -d '{
+        "data_view": {
+          "id": "apm-metrics-dv",
+          "title": "metrics-apm-*",
+          "timeFieldName": "@timestamp",
+          "name": "APM Metrics"
+        }
+      }' || echo "    APM Metrics data view may already exist."
+
+    # apm-* (legacy / direct APM Server indices)
+    curl -sf -X POST "$KIBANA/api/data_views/data_view" \
+      -H 'Content-Type: application/json' \
+      -H 'kbn-xsrf: true' \
+      -d '{
+        "data_view": {
+          "id": "apm-legacy-dv",
+          "title": "apm-*",
+          "timeFieldName": "@timestamp",
+          "name": "APM (all)"
+        }
+      }' || echo "    APM all data view may already exist."
+
+    echo ">>> Importing dashboards..."
+    curl -sf -X POST "$KIBANA/api/saved_objects/_import?overwrite=true" \
+      -H 'kbn-xsrf: true' \
+      -F "file=@/setup/dashboards.ndjson"
+
+    echo ">>> Kibana setup complete!"
+    echo "    APM UI:       $KIBANA/app/apm"
+    echo "    Dashboard:    $KIBANA/app/dashboards"
+
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# Kibana dashboards — sourced from kibana-dashboards.ndjson
+# Apply with: kubectl create configmap kibana-dashboards-config \
+#   --from-file=dashboards.ndjson=kibana-dashboards.ndjson \
+#   -n boring-project --dry-run=client -o yaml | kubectl apply -f -
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-dashboards-config
+  namespace: boring-project
+data:
+  # Content managed in kibana-dashboards.ndjson — update that file, then
+  # re-run the kubectl command above to refresh this ConfigMap.
+  dashboards.ndjson: ""   # placeholder; populate via the command above
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kibana-setup
+  namespace: boring-project
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: kibana-setup
+          image: curlimages/curl:8.7.1
+          command: ["/bin/sh", "/setup/setup.sh"]
+          volumeMounts:
+            - name: setup-vol
+              mountPath: /setup
+            - name: dashboards-vol
+              mountPath: /setup/dashboards.ndjson
+              subPath: dashboards.ndjson
+      volumes:
+        - name: setup-vol
+          configMap:
+            name: kibana-setup-config
+            defaultMode: 0755
+        - name: dashboards-vol
+          configMap:
+            name: kibana-dashboards-config
