@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -35,7 +34,7 @@ public class TransactionService {
         long count = transactionCount / 5;
         if (transactionCount % 5 != 0)
             count += 1;
-        map.put("pages", Optional.of(count));
+        map.put("pages", count);
         return map;
     }
 

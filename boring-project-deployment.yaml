@@ -6,6 +6,46 @@ metadata:
   annotations:
     linkerd.io/inject: enabled
 
+# Secret for postgres credentials
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: boring-project
+type: Opaque
+stringData:
+  username: portfolio_service
+  password: portfolio_service
+
+# PVC for postgres
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: boring-project
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+# PVC for redis
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: boring-project
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 512Mi
+
 # Frontend (React via Nginx)
 ---
 apiVersion: apps/v1
@@ -29,8 +69,13 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
 ---
-# Service for Frontend
 apiVersion: v1
 kind: Service
 metadata:
@@ -42,6 +87,7 @@ spec:
   ports:
     - port: 80
       targetPort: 80
+
 # AuthenticationService
 ---
 apiVersion: apps/v1
@@ -62,8 +108,38 @@ spec:
       containers:
         - name: authenticationservice
           image: localhost:6000/theboringproject-authenticationservice:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8081
+          env:
+            - name: POSTGRES_URL
+              value: "postgres:5432"
+            - name: REDIS_URL
+              value: "redis"
+            - name: KAFKA_URL
+              value: "kafka:29092"
+            - name: AUTHENTICATION_SERVICE_URL
+              value: "http://authenticationservice:8081"
+            - name: PORTFOLIO_SERVICE_URL
+              value: "http://portfolioservice:8082"
+            - name: TRANSACTION_SERVICE_URL
+              value: "http://transactionservice:8083"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
@@ -97,8 +173,38 @@ spec:
       containers:
         - name: portfolioservice
           image: localhost:6000/theboringproject-portfolioservice:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8082
+          env:
+            - name: POSTGRES_URL
+              value: "postgres:5432"
+            - name: REDIS_URL
+              value: "redis"
+            - name: KAFKA_URL
+              value: "kafka:29092"
+            - name: AUTHENTICATION_SERVICE_URL
+              value: "http://authenticationservice:8081"
+            - name: PORTFOLIO_SERVICE_URL
+              value: "http://portfolioservice:8082"
+            - name: TRANSACTION_SERVICE_URL
+              value: "http://transactionservice:8083"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
@@ -132,8 +238,38 @@ spec:
       containers:
         - name: transactionservice
           image: localhost:6000/theboringproject-transactionservice:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8083
+          env:
+            - name: POSTGRES_URL
+              value: "postgres:5432"
+            - name: REDIS_URL
+              value: "redis"
+            - name: KAFKA_URL
+              value: "kafka:29092"
+            - name: AUTHENTICATION_SERVICE_URL
+              value: "http://authenticationservice:8081"
+            - name: PORTFOLIO_SERVICE_URL
+              value: "http://portfolioservice:8082"
+            - name: TRANSACTION_SERVICE_URL
+              value: "http://transactionservice:8083"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
@@ -166,22 +302,34 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:latest
+          image: postgres:15
           ports:
             - containerPort: 5432
           env:
             - name: POSTGRES_USER
-              value: "portfolio_service"
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: username
             - name: POSTGRES_PASSWORD
-              value: "portfolio_service"
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
             - name: POSTGRES_DB
               value: "portfolio_db"
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "portfolio_service", "-d", "portfolio_db"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
       volumes:
         - name: postgres-storage
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: postgres-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -214,16 +362,22 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:latest
+          image: redis:7
           command: ["redis-server", "--appendonly", "yes"]
           ports:
             - containerPort: 6379
           volumeMounts:
             - name: redis-storage
               mountPath: /data
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
       volumes:
         - name: redis-storage
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: redis-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -237,7 +391,7 @@ spec:
     - port: 6379
       targetPort: 6379
 
-# Kafka
+# Kafka (KRaft mode)
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -254,19 +408,23 @@ spec:
       labels:
         app: kafka
     spec:
-      hostname: broker
       containers:
         - name: kafka
-          image: apache/kafka:latest
+          image: apache/kafka:3.7.0
           ports:
             - containerPort: 9092
+            - containerPort: 29092
           env:
             - name: KAFKA_BROKER_ID
               value: "1"
             - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
               value: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT"
+            # Bind all listeners to 0.0.0.0 so they work regardless of pod hostname
+            - name: KAFKA_LISTENERS
+              value: "PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092"
+            # Advertise using the Kubernetes Service name so other pods resolve correctly
             - name: KAFKA_ADVERTISED_LISTENERS
-              value: "PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092"
+              value: "PLAINTEXT://kafka:29092,PLAINTEXT_HOST://kafka:9092"
             - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
               value: "1"
             - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
@@ -279,10 +437,9 @@ spec:
               value: "broker,controller"
             - name: KAFKA_NODE_ID
               value: "1"
+            # Single-node: controller communicates with itself on localhost
             - name: KAFKA_CONTROLLER_QUORUM_VOTERS
-              value: "1@broker:29093"
-            - name: KAFKA_LISTENERS
-              value: "PLAINTEXT://broker:29092,CONTROLLER://broker:29093,PLAINTEXT_HOST://0.0.0.0:9092"
+              value: "1@localhost:29093"
             - name: KAFKA_INTER_BROKER_LISTENER_NAME
               value: "PLAINTEXT"
             - name: KAFKA_CONTROLLER_LISTENER_NAMES
@@ -291,8 +448,11 @@ spec:
               value: "/tmp/kraft-combined-logs"
             - name: CLUSTER_ID
               value: "MkU3OEVBNTcwNTJENDM2Qk"
-            - name: KAFKA_CREATE_TOPICS
-              value: "stock-prices:3:1:retention.ms=5000,cleanup.policy=delete,segment.bytes=1048576"
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 20
+            periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
@@ -303,10 +463,15 @@ spec:
   selector:
     app: kafka
   ports:
-    - port: 9092
+    - name: plaintext-host
+      port: 9092
       targetPort: 9092
+    # Expose internal PLAINTEXT port so app services can connect on kafka:29092
+    - name: plaintext
+      port: 29092
+      targetPort: 29092
 
-# Ingress (React route removed)
+# Ingress
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

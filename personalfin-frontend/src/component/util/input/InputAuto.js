@@ -10,7 +10,7 @@ export default class InputAuto extends Component {
 
     onChangeAssetName = (event) => {
         this.setState({assetName: event.target.value});
-        if (event.target.value < 3) {
+        if (event.target.value.length < 3) {
             this.setState({assetList: [{assetName: "Please Enter More"}]});
         }
         if (event.target.value.length >= 3) {

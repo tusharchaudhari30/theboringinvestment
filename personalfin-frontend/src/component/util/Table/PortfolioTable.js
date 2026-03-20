@@ -16,7 +16,7 @@ export default class PortfolioTable extends Component {
     }
   }
   nextPage = () => {
-    if (this.state.current < this.props.data.length / 5) {
+    if (this.state.current < Math.ceil(this.props.data.length / 5)) {
       this.setState({
         currentPage: this.paginate(this.props.data, 5, this.state.current + 1),
         current: this.state.current + 1,
