@@ -1,3 +1,5 @@
+import './tracing'; // must be first — initialises OTel before React and any fetch calls
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';

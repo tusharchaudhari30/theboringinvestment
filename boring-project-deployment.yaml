@@ -124,6 +124,8 @@ spec:
               value: "http://portfolioservice:8082"
             - name: TRANSACTION_SERVICE_URL
               value: "http://transactionservice:8083"
+            - name: OTEL_COLLECTOR_URL
+              value: "otelcollector:4318"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -189,6 +191,8 @@ spec:
               value: "http://portfolioservice:8082"
             - name: TRANSACTION_SERVICE_URL
               value: "http://transactionservice:8083"
+            - name: OTEL_COLLECTOR_URL
+              value: "otelcollector:4318"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -254,6 +258,8 @@ spec:
               value: "http://portfolioservice:8082"
             - name: TRANSACTION_SERVICE_URL
               value: "http://transactionservice:8083"
+            - name: OTEL_COLLECTOR_URL
+              value: "otelcollector:4318"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -471,6 +477,204 @@ spec:
       port: 29092
       targetPort: 29092
 
+# Stock Data Feed
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stockdatafeed
+  namespace: boring-project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stockdatafeed
+  template:
+    metadata:
+      labels:
+        app: stockdatafeed
+    spec:
+      containers:
+        - name: stockdatafeed
+          image: localhost:6000/theboringproject-stockdatafeed:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8084
+          env:
+            - name: KAFKA_URL
+              value: "kafka:29092"
+            - name: OTEL_COLLECTOR_URL
+              value: "otelcollector:4318"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8084
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stockdatafeed
+  namespace: boring-project
+spec:
+  selector:
+    app: stockdatafeed
+  ports:
+    - port: 8084
+      targetPort: 8084
+
+# OpenTelemetry Collector
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otelcollector-config
+  namespace: boring-project
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+            cors:
+              allowed_origins:
+                - "http://localhost"
+                - "http://*"
+              allowed_headers:
+                - "*"
+
+    processors:
+      batch:
+        timeout: 5s
+        send_batch_size: 1024
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 256
+
+    exporters:
+      otlp/jaeger:
+        endpoint: jaeger:4317
+        tls:
+          insecure: true
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/jaeger]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otelcollector
+  namespace: boring-project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otelcollector
+  template:
+    metadata:
+      labels:
+        app: otelcollector
+    spec:
+      containers:
+        - name: otelcollector
+          image: otel/opentelemetry-collector-contrib:0.104.0
+          args: ["--config=/conf/config.yaml"]
+          ports:
+            - containerPort: 4317
+            - containerPort: 4318
+          volumeMounts:
+            - name: otelcollector-config-vol
+              mountPath: /conf
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: otelcollector-config-vol
+          configMap:
+            name: otelcollector-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otelcollector
+  namespace: boring-project
+spec:
+  selector:
+    app: otelcollector
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+
+# Jaeger (all-in-one)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: boring-project
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      containers:
+        - name: jaeger
+          image: jaegertracing/all-in-one:1.58
+          ports:
+            - containerPort: 16686  # UI
+            - containerPort: 4317   # OTLP gRPC (from OTel Collector)
+            - containerPort: 4318   # OTLP HTTP
+          env:
+            - name: COLLECTOR_OTLP_ENABLED
+              value: "true"
+            - name: SPAN_STORAGE_TYPE
+              value: memory
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 16686
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger
+  namespace: boring-project
+spec:
+  selector:
+    app: jaeger
+  ports:
+    - name: ui
+      port: 16686
+      targetPort: 16686
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+
 # Ingress
 ---
 apiVersion: networking.k8s.io/v1
@@ -507,6 +711,22 @@ spec:
                 name: transactionservice
                 port:
                   number: 8083
+          # Frontend traces → OTel Collector (rewrite strips /otlp → /v1/traces)
+          - path: /otlp(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: otelcollector
+                port:
+                  number: 4318
+          # Jaeger UI → http://localhost/jaeger/search
+          - path: /jaeger(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: jaeger
+                port:
+                  number: 16686
           - path: /()(.*)
             pathType: ImplementationSpecific
             backend:
